@@ -1,0 +1,37 @@
+# Docker-related files
+.dockerignore
+
+# Docker volumes and data
+*/data/
+*/logs/
+
+# Environment files
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Network captures (optional - remove if you want to commit them)
+*.pcap
+*.cap
