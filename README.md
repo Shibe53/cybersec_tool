@@ -45,6 +45,10 @@ The containers are connected via a Docker bridge network and communicate using f
    docker exec victim ping -c 2 172.18.0.30
    docker exec attacker ping -c 2 172.18.0.10
    ```
+5. **If 'victim' refuses to boot up and the error on Docker Desktop states "unable to select packages: curl", run the following command:
+   ```bash
+      dos2unix victim_login.sh
+   ```
 
 ## Basic Usage
 
