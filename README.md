@@ -1,6 +1,6 @@
 # 2IC80 Tool for Attacks
 
-A custom tool that offers a selection of customizable attacks to use.
+A custom tool that offers a selection of customizable attacks to use. This can be found in the folder 'tool'.
 
 ## How to run the ARP Poisoning (WIP)
 
