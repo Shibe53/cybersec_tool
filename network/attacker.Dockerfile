@@ -8,6 +8,7 @@ RUN apt update && apt install -y \
     curl \
     wget \
     net-tools \
+    iproute2 \
     iputils-ping \
     iftop \
     nload \

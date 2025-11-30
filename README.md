@@ -1,6 +1,18 @@
-# CyberSec Network Testing Environment
+# 2IC80 Tool for Attacks
 
-A Docker-based setup for cybersecurity testing with three interconnected containers.
+A custom tool that offers a selection of customizable attacks to use.
+
+## How to run the ARP Poisoning (WIP)
+
+1. Put the file 'arp_poisoning.py' on the attacker machine.
+
+2. Run it using `python3 arp.py` (make sure scapy is installed).
+
+3. Input the interface (e.g., eth0), victim IP, and the website/router's IP.
+
+## CyberSec Network Testing Environment
+
+A Docker-based setup for cybersecurity testing with three interconnected containers. This can be found in the folder 'network'.
 
 ## System Description
 
