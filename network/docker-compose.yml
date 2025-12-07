@@ -1,15 +1,16 @@
 services:
   victim:
-    image: alpine:latest
+    build:
+      context: .
+      dockerfile: victim.Dockerfile
     container_name: victim
     networks:
       mynetwork:
         ipv4_address: 172.18.0.10
+    dns:
+      - 172.18.0.40
     stdin_open: true
     tty: true
-    volumes:
-      - ./victim_login.sh:/victim_login.sh
-    command: ["sh", "/victim_login.sh"]
 
   attacker:
     build:
@@ -35,6 +36,22 @@ services:
     volumes:
       - ./website:/usr/share/nginx/html
       - ./nginx.conf:/etc/nginx/nginx.conf
+
+  dns:
+    build:
+      context: .
+      dockerfile: dns.Dockerfile
+    container_name: dns
+    networks:
+      mynetwork:
+        ipv4_address: 172.18.0.40
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ./named.conf.options:/etc/bind/named.conf.options
+    cap_add:
+      - NET_BIND_SERVICE
 
 networks:
   mynetwork:

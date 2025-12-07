@@ -1,0 +1,36 @@
+options {
+    directory "/var/cache/bind";
+    
+    recursion yes;
+    allow-recursion { any; };
+    
+    allow-query { any; };
+    
+    forwarders {
+        8.8.8.8;
+        8.8.4.4;
+    };
+    forward only;
+    
+    max-cache-size 100m;
+    max-cache-ttl 86400;
+    
+    dnssec-validation no;
+    auth-nxdomain no;
+    
+    listen-on port 53 { any; };
+    listen-on-v6 { none; };
+};
+
+logging {
+    channel default_log {
+        file "/var/log/bind/named.log" versions 3 size 5m;
+        severity info;
+        print-time yes;
+        print-severity yes;
+        print-category yes;
+    };
+    category default { default_log; };
+    category queries { default_log; };
+};
+
