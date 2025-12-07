@@ -20,7 +20,7 @@ This environment creates a private network with four containers:
 - **Victim**: Alpine Linux container that sends HTTP requests
 - **Attacker**: Kali Linux container with network analysis tools
 - **Website**: Nginx web server with a login form
-- **DNS Server**: BIND9 recursive DNS resolver for DNS cache poisoning demonstrations
+- **DNS Server**: BIND9 recursive DNS resolver
 
 The containers are connected via a Docker bridge network and communicate using fixed IP addresses.
 
@@ -29,7 +29,7 @@ The containers are connected via a Docker bridge network and communicate using f
 - **Victim Container** (`172.18.0.10`): Runs an automated script that sends login requests every 5 seconds. Configured to use the local DNS server at 172.18.0.40.
 - **Attacker Container** (`172.18.0.20`): Kali Linux with Scapy, tcpdump, nmap, and other security tools
 - **Website Container** (`172.18.0.30`): Nginx server that serves a login page and logs authentication attempts
-- **DNS Server Container** (`172.18.0.40`): BIND9 recursive DNS resolver that forwards queries to external DNS servers (8.8.8.8, 8.8.4.4). Caches DNS responses for up to 24 hours. Essential for DNS cache poisoning demonstrations as it provides a target DNS server with cacheable responses.
+- **DNS Server Container** (`172.18.0.40`): BIND9 recursive DNS resolver that forwards queries to external DNS servers (8.8.8.8, 8.8.4.4). Caches DNS responses for up to 24 hours.
 
 ## Setup Instructions
 
