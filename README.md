@@ -2,7 +2,10 @@
 
 A custom tool that offers a selection of customizable attacks to use. This can be found in the folder 'tool'.
 
-The tool needs some pre-installed packages to run. These should be installed using the command ```pip -r requirements.txt```.
+The tool needs some pre-installed packages to run. These should be installed using the command 
+```bash
+pip -r requirements.txt
+```
 
 ## ARP Poisoning
 
