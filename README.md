@@ -2,17 +2,31 @@
 
 A custom tool that offers a selection of customizable attacks to use. This can be found in the folder 'tool'.
 
-## How to run the ARP Poisoning (WIP)
+The tool needs some pre-installed packages to run. These should be installed using the command ```pip -r requirements.txt```.
 
-1. Put the file 'arp_poisoning.py' on the attacker machine.
+## ARP Poisoning
 
-2. Run it using `python3 arp.py` (make sure scapy is installed).
+First, the tool will use an ARP Poisoning attack to make the attacker machine a Man-In-The-Middle. This works by spoofing a target's ARP table pretending to be a gateway/website, while actually using the attacker machine's MAC address, thus allowing for packets to flow through the attacker.
 
-3. Input the interface (e.g., eth0), victim IP, and the website/router's IP.
+### How to run (currently)
+
+1. Put the file `arp_poisoning.py` on the attacker machine.
+
+2. Run it using `python3 arp_poisoning.py` (make sure scapy is installed).
+
+3. Input the interface (e.g., eth0), victim IP, the website/router's IP, and the aggressiveness level, which specifies how often the script poisons the targets (10 is every 0.5s, while 1 is every 9.5s).
+
+4. Cancel the poisoning using `CTRL+C`. If you wish to have the targets' ARP tables restored to the correct ones, input `Y`; otherwise input `N`.
+
+## DNS Spoofing (WIP)
+
+For the DNS spoofer to work, the attacker machine needs to be a MITM.
+
+### How to run
 
 ## CyberSec Network Testing Environment
 
-A Docker-based setup for cybersecurity testing with three interconnected containers. This can be found in the folder 'network'.
+A Docker-based setup for cybersecurity testing with four interconnected containers. This can be found in the folder 'network'.
 
 ## System Description
 
