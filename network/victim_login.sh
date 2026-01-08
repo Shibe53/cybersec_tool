@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Simple victim login script
+apk add curl
 while true; do
     echo "SENDING LOGIN REQUEST"
     curl -s -X POST \
