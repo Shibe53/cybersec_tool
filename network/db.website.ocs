@@ -1,0 +1,13 @@
+$TTL 86400
+@   IN  SOA dns.website.ocs. admin.website.ocs. (
+        1
+        3600
+        1800
+        604800
+        86400
+)
+
+@       IN  NS  dns.website.ocs.
+dns     IN  A   172.18.0.40
+@       IN  A   172.18.0.30
+www     IN  A   172.18.0.30

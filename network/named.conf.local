@@ -1,0 +1,4 @@
+zone "website.ocs" {
+    type master;
+    file "/etc/bind/db.website.ocs";
+};
