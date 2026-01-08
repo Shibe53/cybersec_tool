@@ -4,11 +4,11 @@ services:
       context: .
       dockerfile: victim.Dockerfile
     container_name: victim
+    volumes:
+      - ./resolv.conf:/etc/resolv.conf:ro
     networks:
       mynetwork:
         ipv4_address: 172.18.0.10
-    dns:
-      - 172.18.0.40
     stdin_open: true
     tty: true
 
