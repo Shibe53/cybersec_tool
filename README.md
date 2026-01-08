@@ -4,7 +4,7 @@ A custom tool that offers a selection of customizable attacks to use. This can b
 
 The tool needs some pre-installed packages to run. These should be installed using the command 
 ```bash
-pip -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ## ARP Poisoning
@@ -13,9 +13,9 @@ First, the tool will use an ARP Poisoning attack to make the attacker machine a 
 
 ### How to run (currently)
 
-1. Put the file `arp_poisoning.py` on the attacker machine.
+1. Put the whole "tool" folder on the attacker machine.
 
-2. Run it using `python3 arp_poisoning.py` (make sure scapy is installed).
+2. Run the tool using  `python3 main.py` (make sure scapy is installed).
 
 3. Input the interface (e.g., eth0), victim IP, the website/router's IP, and the aggressiveness level, which specifies how often the script poisons the targets (10 is every 0.5s, while 1 is every 9.5s).
 
@@ -23,7 +23,7 @@ First, the tool will use an ARP Poisoning attack to make the attacker machine a 
 
 ## DNS Spoofing (WIP)
 
-For the DNS spoofer to work, the attacker machine needs to be a MITM.
+For the DNS spoofer to work, the attacker machine needs to be a MITM. Currently, the DNS Server IP is hardcoded, but it should be learned instead.
 
 ### How to run
 
@@ -45,7 +45,7 @@ The containers are connected via a Docker bridge network and communicate using f
 
 - **Victim Container** (`172.18.0.10`): Runs an automated script that sends login requests every 5 seconds. Configured to use the local DNS server at 172.18.0.40.
 - **Attacker Container** (`172.18.0.20`): Kali Linux with Scapy, tcpdump, nmap, and other security tools
-- **Website Container** (`172.18.0.30`): Nginx server that serves a login page and logs authentication attempts
+- **Website Container** (`172.18.0.30`): Nginx server that serves a login page and logs authentication attempts. Domain is "website.ocs".
 - **DNS Server Container** (`172.18.0.40`): BIND9 recursive DNS resolver that forwards queries to external DNS servers (8.8.8.8, 8.8.4.4). Caches DNS responses for up to 24 hours.
 
 ## Setup Instructions
