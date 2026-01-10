@@ -49,9 +49,9 @@ def run(iface, victim, site, timer):
     )
 
     # Spoof DNS in a separate thread
-    dns_sniffer = DNSSpoof(iface, victim, site)
+    dns_spoofer = DNSSpoof(iface, victim, site)
     dns_sniff_thread = threading.Thread(
-        target=dns_sniffer.start,
+        target=dns_spoofer.start,
         args=(stop_event,)
     )
 
@@ -67,8 +67,8 @@ def run(iface, victim, site, timer):
     except KeyboardInterrupt:
         # Program should stop on CTRL+C
         stop_event.set()
-
         arp_thread.join()
+        dns_spoofer.disable_dns_block()
 
         restore = input("> Restore ARP tables? [Y/N] ").strip().lower()
         if restore == 'y' or restore == 'yes':
