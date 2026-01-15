@@ -35,3 +35,6 @@ logs/
 # Network captures (optional - remove if you want to commit them)
 *.pcap
 *.cap
+
+# Python cache files
+__pycache__/
