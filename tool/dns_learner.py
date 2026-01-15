@@ -12,7 +12,7 @@ class DNSLearner:
                 self.arp.set_dns(dns_ip)
 
     def start(self, stop_event):
-        print("> Learning DNS Server...")
+        print("[DNSLearn]: Learning DNS Server...")
         while not stop_event.is_set():
             scapy.sniff(
                 iface=self.iface,

