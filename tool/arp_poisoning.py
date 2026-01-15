@@ -69,6 +69,6 @@ class ARPPoison:
                     self.poison(self.victimIP, self.dnsIP, self.victimMAC)
                     self.poison(self.dnsIP, self.victimIP, self.dnsMAC)
 
-                time.sleep(10.5 - timer)
+                time.sleep(60.5 - 6*timer)
 
         self.ip_forward(False)

