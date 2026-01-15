@@ -6,6 +6,7 @@ services:
     container_name: victim
     volumes:
       - ./resolv.conf:/etc/resolv.conf:ro
+      - ./website.crt:/website.crt
     networks:
       mynetwork:
         ipv4_address: 172.18.0.10
@@ -17,6 +18,8 @@ services:
       context: .
       dockerfile: attacker.Dockerfile
     container_name: attacker
+    volumes:
+      - ./../tool:/workspace
     networks:
       mynetwork:
         ipv4_address: 172.18.0.20
@@ -36,6 +39,8 @@ services:
     volumes:
       - ./website:/usr/share/nginx/html
       - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./website.key:/etc/nginx/website.key
+      - ./website.crt:/etc/nginx/website.crt
 
   dns:
     build:
