@@ -40,8 +40,9 @@ class SSLStrip:
         except:
             return None
 
+    # Strip server response of anything that could revert it to HTTPS
     def strip(self, response):
-        # TODO: strip the response from anything that might upgrade the connection to a secure one
+        # TODO
         return response
 
     def start(self, stop_event):

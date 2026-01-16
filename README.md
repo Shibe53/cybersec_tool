@@ -1,37 +1,29 @@
 # 2IC80 Tool for Attacks
 
-A custom tool that offers a selection of customizable attacks to use. This can be found in the folder 'tool'.
+A custom tool that conducts an ARP poisoning and DNS spoofing attack on a target machine, along with an SSL stripping functionality. It can be found in the folder `tool`.
 
 The tool needs some pre-installed packages to run. These should be installed using the command 
 ```bash
 pip install -r requirements.txt
 ```
 
-## ARP Poisoning
-
-First, the tool will use an ARP Poisoning attack to make the attacker machine a Man-In-The-Middle. This works by spoofing a target's ARP table pretending to be a gateway/website, while actually using the attacker machine's MAC address, thus allowing for packets to flow through the attacker.
-
-### How to run (currently)
-
-1. Put the whole "tool" folder on the attacker machine.
-
-2. Run the tool using  `python3 main.py` (make sure scapy is installed).
-
-3. Input the interface (e.g., eth0), victim IP, the website/router's IP, and the aggressiveness level, which specifies how often the script poisons the targets (10 is every 0.5s, while 1 is every 9.5s).
-
-4. Cancel the poisoning using `CTRL+C`. If you wish to have the targets' ARP tables restored to the correct ones, input `Y`; otherwise input `N`.
-
-## DNS Spoofing (WIP)
-
-For the DNS spoofer to work, the attacker machine needs to be a MITM. Currently, the DNS Server IP is hardcoded, but it should be learned instead.
-
 ### How to run
+
+1. Put the whole `tool` folder on the attacker machine.
+
+2. Run the tool using  `python3 main.py` (make sure the requirements are installed).
+
+3. The tool will ask if an nmap scan should be conducted, to see available hosts on the network. If so, provide the subnet to be scanned.
+
+4. Input the interface (e.g., eth0), victim IP, the website/router's IP, and the aggressiveness level, which specifies how often the script poisons the targets (10 is every 0.5s, while 1 is every 54.5s).
+
+5. Cancel the attack using `CTRL+C`. If you wish to have the targets' ARP tables restored to the correct ones, input `Y`; otherwise input `N`.
 
 ## CyberSec Network Testing Environment
 
 A Docker-based setup for cybersecurity testing with four interconnected containers. This can be found in the folder 'network'.
 
-## System Description
+### System Description
 
 This environment creates a private network with four containers:
 - **Victim**: Alpine Linux container that sends HTTP requests
@@ -41,19 +33,19 @@ This environment creates a private network with four containers:
 
 The containers are connected via a Docker bridge network and communicate using fixed IP addresses.
 
-## Components
+### Components
 
 - **Victim Container** (`172.18.0.10`): Runs an automated script that sends login requests every 5 seconds. Configured to use the local DNS server at 172.18.0.40.
 - **Attacker Container** (`172.18.0.20`): Kali Linux with Scapy, tcpdump, nmap, and other security tools
 - **Website Container** (`172.18.0.30`): Nginx server that serves a login page and logs authentication attempts. Domain is "website.ocs".
 - **DNS Server Container** (`172.18.0.40`): BIND9 recursive DNS resolver that forwards queries to external DNS servers (8.8.8.8, 8.8.4.4). Caches DNS responses for up to 24 hours.
 
-## Setup Instructions
+### Setup Instructions
 
-### Prerequisites
+#### Prerequisites
 - Docker and Docker Compose installed on your system
 
-### Installation Steps
+#### Installation Steps
 
 1. **Navigate to the project directory:**
    ```bash
@@ -103,9 +95,9 @@ The containers are connected via a Docker bridge network and communicate using f
    dos2unix victim_login.sh
    ```
 
-## Basic Usage
+### Basic Usage
 
-### Access the containers:
+#### Access the containers:
 ```bash
 # Victim container
 docker exec -it victim sh
@@ -120,7 +112,7 @@ docker exec -it website sh
 docker exec -it dns bash
 ```
 
-### Monitor activity:
+#### Monitor activity:
 ```bash
 # View logs from all containers
 docker-compose logs -f
@@ -128,7 +120,7 @@ docker-compose logs -f
 # Check login attempts on website
 docker exec website tail -f /var/log/nginx/login_attempts.log
 ```
-## Configuration Files
+### Configuration Files
 
 - `docker-compose.yml`: Container definitions and network configuration
 - `attacker.Dockerfile`: Kali Linux image with additional security tools
@@ -139,13 +131,13 @@ docker exec website tail -f /var/log/nginx/login_attempts.log
 - `website/index.html`: Login page
 - `website/success.html`: Success page after login
 
-## Stopping the Environment
+### Stopping the Environment
 
 ```bash
 docker-compose down
 ```
 
-## Network Details
+### Network Details
 
 - **Network Type**: Docker bridge
 - **IP Range**: 172.18.0.0/16
