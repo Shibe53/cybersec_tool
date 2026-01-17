@@ -19,6 +19,7 @@ RUN apt update && apt install -y \
     python3-pip \
     python3-scapy \
     python3-nmap \
+    python3-netifaces \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

