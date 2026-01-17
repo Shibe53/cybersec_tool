@@ -5,10 +5,9 @@ from scapy.layers.inet import IP, UDP
 import subprocess
 
 class DNSSpoof:
-    def __init__(self, iface, victimIP, websiteIP):
+    def __init__(self, iface, victimIP):
         self.iface = iface
         self.victimIP = victimIP
-        self.websiteIP = websiteIP
         self.fakeIP = scapy.get_if_addr(iface)
 
         self.enable_dns_block()
@@ -49,7 +48,6 @@ class DNSSpoof:
         qname = dns[DNSQR].qname.decode()
 
         # Only spoof the domain we care about
-        # TODO Do we need this?
         if qname != "website.ocs.":
             return
 
