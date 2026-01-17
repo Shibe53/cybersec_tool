@@ -20,7 +20,7 @@ services:
     container_name: attacker
     volumes:
       - ./../tool:/workspace
-      # - ./resolv.conf:/etc/resolv.conf:ro
+      - ./resolv.conf:/etc/resolv.conf:ro
     networks:
       mynetwork:
         ipv4_address: 172.18.0.20

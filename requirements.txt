@@ -1,2 +1,3 @@
 scapy==2.6.1
-python-nmap
+nmap==7.98
+netifaces
