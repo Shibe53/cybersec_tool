@@ -48,6 +48,8 @@ class DNSSpoof:
         qname = dns[DNSQR].qname.decode()
 
         # Only spoof the domain we care about
+        # XXX: Docker does not work with local DNS resolving on a Kali Linux container
+        # if running the container on Windows. Keeping this hardcoded for now
         if qname != "website.ocs.":
             return
 
