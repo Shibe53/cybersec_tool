@@ -18,7 +18,7 @@ def get_default_gateway(iface):
         if iface == interface:
             return gateway
 
-    return none
+    return None
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -153,6 +153,8 @@ def setup():
             except UnboundLocalError:
                 pass
             exit(0)
+    else:
+        forward = args.forward
 
     return (
         args.interface,
@@ -170,7 +172,7 @@ def run(iface, victim, website, dns, timer, forward):
     arp = ARPPoison(iface, victim, website)
     arp_thread = threading.Thread(
         target=arp.attack,
-        args=(timer, stop_event,)
+        args=(timer, forward, stop_event,)
     )
 
     # Spoof DNS in a separate thread

