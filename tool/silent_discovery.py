@@ -8,39 +8,39 @@ import os
 
 class Silent:
     def __init__(self, interface):
-        self.targets = {}
+        self.target_ips = list()
+        self.target_macs = dict()
         self.mac = scapy.get_if_hwaddr(interface)
         self.ip = scapy.get_if_addr(interface)
         self.iface = interface
 
+    def add_target(self, mac, ip):
+        if ip not in self.target_ips:
+            self.target_ips.append(ip)
+            self.target_macs[ip] = mac
+            print(f"Targets found: {self.target_ips}")
+
     def filter(self, mac, ip):
         if mac == "ff:ff:ff:ff:ff:ff":
-            return False
+            return
         if mac == self.mac:
-            return False
+            return
         if ip == self.ip:
-            return False
-        return True
+            return
+        self.add_target(mac, ip)
+
+    def analyze(self, pkt):
+        if IP in pkt:
+            self.filter(pkt[Ether].src, pkt[IP].src)
+            self.filter(pkt[Ether].dst, pkt[IP].dst)
+        if ARP in pkt:
+            self.filter(pkt[Ether].src, pkt[ARP].src)
+            self.filter(pkt[Ether].dst, pkt[ARP].dst)
 
     def discover(self, stop_silent):
         try:
             while not stop_silent.is_set():
-                pkt = scapy.sniff(iface=self.iface, store=0, timeout=1)
-                #print(pkt)
-                if IP in pkt:
-                    if filter(pkt[Ether].src, pkt[IP].src) and pkt[IP].src not in self.targets:
-                        self.targets.append(pkt[IP].src)
-                        print(f"Targets found: {self.targets}")
-                    if filter(pkt[Ether].dst, pkt[IP].dst) and pkt[IP].dst not in self.targets:
-                        self.targets.append(pkt[IP].dst)
-                        print(f"Targets found: {self.targets}")
-                if ARP in pkt:
-                    if filter(pkt[Ether].src, pkt[ARP].src) and pkt[ARP].src not in self.targets:
-                        self.targets.append(pkt[ARP].src)
-                        print(f"Targets found: {self.targets}")
-                    if filter(pkt[Ether].dst, pkt[ARP].dst) and pkt[ARP].dst not in self.targets:
-                        self.targets.append(pkt[ARP].dst)
-                        print(f"Targets found: {self.targets}")
+                scapy.sniff(iface=self.iface, prn=self.analyze, store=0, promisc=True, timeout=1)
         except KeyboardInterrupt:
             pass
         except scapy.Scapy_Exception:
